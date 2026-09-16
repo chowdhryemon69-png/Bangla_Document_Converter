@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+build/
+dist/
+logs/
+output/
+node_modules/
+release/BanglaDocumentConverter/
+packaging/provenance/
+packaging/runtime/
+*.docx
+!samples/Note_TEC.docx
+!test_document.docx

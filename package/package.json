@@ -1,0 +1,18 @@
+{
+  "name": "bijoy-unicode-converter",
+  "version": "0.1.2",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "description": "Bijoy to Unicode (UTF-8) converter for JS",
+  "keywords": [
+    "bijoy",
+    "unicode",
+    "converter",
+    "bangla"
+  ],
+  "author": "Naim Howlader",
+  "license": "MIT"
+}
