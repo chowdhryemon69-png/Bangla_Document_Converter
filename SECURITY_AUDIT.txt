@@ -1,0 +1,52 @@
+SECURITY_AUDIT
+==============
+
+EXE signature status:
+EXE_SIGNATURE_STATUS=UNSIGNED
+
+Node signature status:
+NODE_SIGNATURE_STATUS=UNSIGNED
+
+Bundled executable inventory:
+- dist\BanglaDocumentConverter\BanglaDocumentConverter.exe
+- dist\BanglaDocumentConverter\_internal\runtime\node.exe
+- dist\BanglaDocumentConverter\_internal\runtime\bijoy_bridge.mjs
+- dist\BanglaDocumentConverter\_internal\runtime\node_modules\bijoy-unicode-converter\...
+
+Network access implemented:
+- No outbound network dependency was identified in the application logic.
+- The app runs a bundled local Node process for conversion logic and does not perform remote downloads, background telemetry, or external service calls.
+
+Subprocesses launched:
+- The application launches a local bundled Node process via the bridge script for conversion only.
+- No unrelated shell commands, remote loader, updater, or installer behavior were identified.
+
+PyInstaller version:
+- 6.22.3
+
+Python version:
+- 3.11.9
+
+Node version:
+- v24.20.0
+
+Release ZIP SHA-256:
+- 008b875c12f5b34bf85fa133287ab71be34a01492f56781efebb6c2a4a9a0276
+
+Source DOCX SHA-256:
+- 2c8ca9ebbf5e2c0f152ad722e773d6cdb2a6941d9180eecee2b5fe27a73857c5
+
+Known limitations regarding SmartScreen/antivirus reputation:
+- Windows reputation checks are not controlled by source code alone.
+- Unsigned binaries can trigger SmartScreen and antivirus warnings even when the software is benign.
+- This project does not bypass or disable security controls. The unsigned status is documented accurately.
+
+Recommended legitimate solution when a code-signing certificate is required:
+- Obtain a valid Authenticode code-signing certificate from an approved certificate authority.
+- Sign the final EXE and, where applicable, the bundled runtime or installer with that certificate.
+- Validate the signature on a clean Windows system before publication.
+- Continue to avoid deceptive packaging, obfuscation, loaders, or bypass techniques.
+
+Audit result:
+- The application is a local DOCX conversion tool and does not use suspicious or evasive techniques.
+- The current release is not a trusted signed build and should not be described as trusted or cleared by Windows reputation systems.

@@ -1,1 +1,1 @@
-387e83892f143041b72551a57d12a97c1fb33f46e1587959ee88c990fa1d0982  BanglaDocumentConverter-v1.0.0-Windows-x64.zip
+﻿008b875c12f5b34bf85fa133287ab71be34a01492f56781efebb6c2a4a9a0276  BanglaDocumentConverter-v1.0.0-Windows-x64.zip

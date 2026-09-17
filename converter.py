@@ -36,6 +36,7 @@ BRIDGE_FILE = Path(
 
 SOURCE_FONT = "SutonnyMJ"
 TARGET_FONT = "Nikosh"
+LATIN_TARGET_FONT = "Times New Roman"
 
 W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 
@@ -233,6 +234,106 @@ def set_run_font(run, font_name: str):
     )
 
 
+LATIN_PATTERN = re.compile(r"[A-Za-z0-9]")
+BENGALI_PATTERN = re.compile(r"[\u0980-\u09FF]")
+MIXED_RUN_SEGMENT_RE = re.compile(
+    r"[A-Za-z0-9]+(?:[-_/][A-Za-z0-9]+)*|[\u0980-\u09FF]+|[^A-Za-z0-9\u0980-\u09FF]+"
+)
+
+
+def contains_latin_text(text: str) -> bool:
+    return bool(text and LATIN_PATTERN.search(text))
+
+
+def split_run_for_latin_font(run):
+    """Split a run so Bangla and Latin segments can keep their assigned fonts."""
+    text = run.text or ""
+    if not text or not contains_latin_text(text):
+        return False
+
+    parent = run._r.getparent()
+    if parent is None:
+        return False
+
+    segments = []
+    last_index = 0
+    for match in MIXED_RUN_SEGMENT_RE.finditer(text):
+        segment_text = match.group(0)
+        if not segment_text:
+            continue
+        if segment_text and any(ch.isascii() and (ch.isalpha() or ch.isdigit()) for ch in segment_text):
+            segments.append((segment_text, "latin"))
+        elif BENGALI_PATTERN.search(segment_text):
+            segments.append((segment_text, "bangla"))
+        elif segment_text.strip():
+            segments.append((segment_text, "other"))
+        last_index = match.end()
+
+    if not segments:
+        set_run_font(run, LATIN_TARGET_FONT)
+        return True
+
+    if len(segments) == 1 and segments[0][1] == "latin":
+        set_run_font(run, LATIN_TARGET_FONT)
+        return True
+
+    original_r = run._r
+    original_index = parent.index(original_r)
+    all_new_runs = []
+
+    for segment_text, segment_kind in segments:
+        if not segment_text:
+            continue
+
+        new_run = create_run_from_original(run, segment_text)
+        if segment_kind == "latin":
+            set_run_font(new_run, LATIN_TARGET_FONT)
+        elif segment_kind == "bangla":
+            set_run_font(new_run, TARGET_FONT)
+        else:
+            # Keep punctuation/spacing attached to the neighboring content's
+            # default style in a way that does not alter the run text.
+            if BENGALI_PATTERN.search(segment_text):
+                set_run_font(new_run, TARGET_FONT)
+            else:
+                set_run_font(new_run, LATIN_TARGET_FONT)
+        all_new_runs.append(new_run._r)
+
+    for offset, new_r in enumerate(all_new_runs):
+        parent.insert(original_index + offset, new_r)
+    parent.remove(original_r)
+    return True
+
+
+def normalize_latin_runs_in_document(document):
+    """Ensure that Latin/English text uses Times New Roman while Bangla stays Nikosh."""
+    for paragraph in document.paragraphs:
+        for run in list(paragraph.runs):
+            if run.text and contains_latin_text(run.text):
+                if BENGALI_PATTERN.search(run.text):
+                    split_run_for_latin_font(run)
+                else:
+                    set_run_font(run, LATIN_TARGET_FONT)
+
+    for table in document.tables:
+        def normalize_table(tbl):
+            for row in tbl.rows:
+                for cell in row.cells:
+                    for paragraph in cell.paragraphs:
+                        for run in list(paragraph.runs):
+                            if run.text and contains_latin_text(run.text):
+                                if BENGALI_PATTERN.search(run.text):
+                                    split_run_for_latin_font(run)
+                                else:
+                                    set_run_font(run, LATIN_TARGET_FONT)
+                    for nested_table in cell.tables:
+                        normalize_table(nested_table)
+
+        normalize_table(table)
+
+    return document
+
+
 # ============================================================
 # PROTECTED TOKEN HANDLING
 # ============================================================
@@ -353,11 +454,12 @@ def create_run_from_original(
 
             new_r.remove(child)
 
-    # python-docx needs a text node.
-    #
-    # We create the new Run object first and assign text later.
+    # python-docx requires both the XML element and the parent story object.
+    # Using the original run's parent keeps the cloned run attached to the
+    # document structure without disturbing the existing formatting tree.
     new_run = original_run.__class__(
-        new_r
+        new_r,
+        original_run._parent,
     )
 
     new_run.text = text
@@ -1368,6 +1470,7 @@ def convert_docx_file(
             report(f"Converting Bangla... {index}/{total_runs}", percent)
 
         report("Applying Nikosh...", 85)
+        normalize_latin_runs_in_document(document)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         report("Saving document...", 90)
         document.save(output_path)
